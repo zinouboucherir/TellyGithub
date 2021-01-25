@@ -1,40 +1,59 @@
-package com.telly.dao;
+package com.telly.controllers;
 
+import java.security.Principal;
 import java.util.List;
 
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 
-@Repository
-@Transactional
-@Component("userDao")
-public class UserDao {
+import com.telly.dao.FormValidationGroup;
+import com.telly.dao.Reserve;
+import com.telly.dao.User;
+import com.telly.service.ReserveService;
+import com.telly.service.UserService;
+
+
+
+@Controller
+public class UserController {
 
 	@Autowired
-	private PasswordEncoder passwordEncoder;
+	UserService userService;
+  	@RequestMapping("/login")
+	public String showLogin() {
+		return "login";
+	}
+	
+	@RequestMapping("/loggedout")
+	public String showLogout() {
+		return "loggedout";
 
-	@Autowired
-	private SessionFactory sessionFactory;
-
-	public Session session() {
-		return sessionFactory.getCurrentSession();
+  	@RequestMapping("/createaccount")
+	public String createAccount(Model model, Principal principal) {
+		
+		model.addAttribute("user", new User());
+		
+		return "createaccount";
 	}
 
-	@Transactional
-	public void create(User user) {
-		user.setPassword(passwordEncoder.encode(user.getPassword()));
-		session().save(user);
+	@RequestMapping(value = "/createuser", method = RequestMethod.POST)
+	public String createUser(@Validated(FormValidationGroup.class) User user, BindingResult result) {
+		
+		if(result.hasErrors()) {
+			return "createaccount";
+		}
+		
+		user.setAuthority("ROLE_USER");
+		user.setEnabled(true);
+
+		userService.create(user);
+		
+		return "home";
+
 	}
-
-	@SuppressWarnings("unchecked")
-	public List<User> getAllUsers() {
-		return session().createQuery("from User").list();
-	}	
-
-
 }
